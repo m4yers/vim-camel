@@ -36,13 +36,43 @@ function! camel#HumpTop(type)
         return
     endif
 
-    let result = pyeval('_camel.HumpTop("camelcase","' . @@ . '")')
-    let @@ = result.json.data
+    let result = pyeval('_camel.Hump("camelcase","' . @@ . '")')
+    let @@ = result.json.data[0]
     execute 'normal! P'
 
     " callee restore
     let @@ = saved_reg
     let &clipboard = saved_clipboard
+endfunction
+
+function! camel#HumpAll(type)
+    " callee save
+    let saved_clipboard = &clipboard
+    let saved_reg = @@
+
+    " We want to user the real unnamed register
+    let &clipboard=''
+
+    if a:type ==# 'char'
+        execute 'normal! `[v`]y`]'
+    else
+        return
+    endif
+
+    let s:complete_result = pyeval('_camel.Hump("camelcase","' . @@ . '")')
+    let s:complete_start = col("'[")
+    let s:complete_end = col("']")
+
+    call feedkeys("a\<c-r>=camel#Complete()\<cr>", 't')
+
+    " callee restore
+    let @@ = saved_reg
+    let &clipboard = saved_clipboard
+endfunction
+
+function! camel#Complete()
+    call complete(s:complete_start, s:complete_result.json.data)
+    return ''
 endfunction
 
 " Move the selected word to the top
@@ -56,10 +86,6 @@ endfunction
 "     call s:Request('POST', '/humps')
 " endfunction
 "
-" function! camel#HumpAll(style, raw)
-"     call s:Debug('HumpAll')
-"     call s:Request('GET', '/humps/' . a:raw . '?style=' . a:style . '&select=all')
-" endfunction
 
 function! s:Debug(message)
     if exists('g:camel_verbose')

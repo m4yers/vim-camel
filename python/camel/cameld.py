@@ -13,7 +13,7 @@ from tst import TST
 _service = None
 
 
-class HTTPJSONRequestHandler(BaseHTTPRequestHandler):
+class CamelRequestHandler(BaseHTTPRequestHandler):
 
   data = dict()
   status = 200
@@ -42,7 +42,7 @@ class HTTPJSONRequestHandler(BaseHTTPRequestHandler):
       self.end_headers()
       self.wfile.write("{\"data\":\"Pong\"}")
     elif re.search('/humps/[^/]*', route.path):
-      word = route.path.split('/')[-1]
+      word = route.path.split('/')[-1].lower()
       self.Status(200)
       self.Data(_service.ToCamelCase(word))
       self.Finish()
@@ -84,7 +84,7 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 class CamelService():
 
   def __init__(self, host, port):
-    self.server = ThreadedHTTPServer((host, port), HTTPJSONRequestHandler)
+    self.server = ThreadedHTTPServer((host, port), CamelRequestHandler)
     self.tst = TST()
 
     # test data

@@ -29,9 +29,9 @@ class CamelClient(object):
   def Ping(self):
     return self.Request("GET", "/ping")
 
-  def HumpTop(self, style, raw):
+  def Hump(self, style, raw):
     return self.Request("GET",
-        "/humps/{0}?style={1}&select={2}".format(raw, style, "top"))
+        "/humps/{0}?style={1}".format(raw, style))
 
   def Request(self, method, route):
     connection = httplib.HTTPConnection(self.host, self.port, strict=True)
