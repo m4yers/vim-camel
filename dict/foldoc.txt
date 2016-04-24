@@ -9737,7 +9737,7 @@ rule
 run
 runes
 runic
-ruptime
+runtime
 rusty
 rwho
 sFTP
