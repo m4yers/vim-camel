@@ -8,21 +8,24 @@ ACCESSIBLE_TO_ALL_MASK = ( stat.S_IROTH | stat.S_IWOTH | stat.S_IXOTH |
 
 class CamelPaths(object):
 
-  def __init__(self, root):
-    self.root = root
-    self.temp = self.Temp()
+  def __init__(self, _root):
+    self._root = _root
+    self._temp = self.Temp()
 
   def Python(self):
     return "python"
 
+  def Root(self):
+    return self._root
+
   def Server(self):
-    return self.root + "/python/camel/cameld.py"
+    return self._root + "/python/camel/cameld.py"
 
   def ServerStdOut(self):
-    return os.path.join(self.temp, 'cameld.out')
+    return os.path.join(self._temp, 'cameld.out')
 
   def ServerStdErr(self):
-    return os.path.join(self.temp, 'cameld.err')
+    return os.path.join(self._temp, 'cameld.err')
 
   def Temp(self):
     path = os.path.join( tempfile.gettempdir(), 'camel_tmp' )

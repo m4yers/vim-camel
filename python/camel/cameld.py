@@ -4,6 +4,7 @@ from SocketServer import ThreadingMixIn
 import threading
 import argparse
 import urlparse
+import random
 import json
 import re
 import sys
@@ -84,13 +85,17 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 class CamelService():
 
-  def __init__(self, host, port):
+  def __init__(self, host, port, fdict):
     self.server = ThreadedHTTPServer((host, port), CamelRequestHandler)
     self.tst = TST()
 
-    # test data
-    words = [ "use", "user", "no", "not", "found",
-        "except", "exception", "io", "ion"]
+    words = [word.rstrip('\n') for word in open(fdict)]
+
+    print 'Got {} words'.format(len(words))
+
+    # This prevents worst case time for TST since horizontaly it is a list
+    random.shuffle(words)
+
     for word in words:
       self.tst.Put(word, word)
 
@@ -161,6 +166,8 @@ def ParseArguments():
   # TODO Default of 0 will make the OS pick a free port for us
   parser_start.add_argument('--port', type=int, default=0)
 
+  parser_start.add_argument('--dict', type=str, required=True)
+
   parser_start.add_argument('--stdout', type=str)
   parser_start.add_argument('--stderr', type=str)
 
@@ -188,5 +195,5 @@ if __name__ == "__main__":
 
   print 'Camel HTTP Server {}:{}'.format(args.host, args.port)
 
-  _service = CamelService(args.host, args.port)
+  _service = CamelService(args.host, args.port, args.dict)
   _service.start()

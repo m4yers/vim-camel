@@ -101,6 +101,7 @@ class CamelClient(object):
         'start',
         '--host={0}'.format(self._host),
         '--port={0}'.format(self._port),
+        '--dict={0}'.format(self._paths.Root() + '/dict/foldoc.txt'),
         '--stdout={0}'.format(self._paths.ServerStdOut()),
         '--stderr={0}'.format(self._paths.ServerStdErr())
     ]
@@ -113,7 +114,7 @@ class CamelClient(object):
     print 'Service:'
     print str(args)
 
-    # wait 200ms till server fully started
+    # FIXME wait 200ms till server fully started
     time.sleep(0.2)
 
     return self._ServiceIsAlive()
