@@ -1,0 +1,5 @@
+# Python
+*.py[cod]
+
+# Exclude auto generated vim doc tags.
+doc/tags
