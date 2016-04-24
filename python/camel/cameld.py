@@ -6,6 +6,7 @@ import argparse
 import urlparse
 import json
 import re
+import sys
 
 from tst import TST
 
@@ -149,21 +150,19 @@ class CamelService():
 
 
 def ParseArguments():
-  parser = argparse.ArgumentParser(prog='Camel',
-      description='Makes word casing easier')
+  parser = argparse.ArgumentParser(prog='Camel', description='Hump your input')
 
   subparsers = parser.add_subparsers(title='Actions', dest='action')
 
-  parser_start = subparsers.add_parser('start', help='Start Camel daemon')
+  parser_start = subparsers.add_parser('start', help='Start Camel service')
 
-  parser_start.add_argument('--host', type=str,
-      default='127.0.0.1',
-      help='service hostname')
+  parser_start.add_argument('--host', type=str, default='127.0.0.1')
 
-  # Default of 0 will make the OS pick a free port for us
-  parser_start.add_argument('--port', type=int,
-      default=0,
-      help='service port')
+  # TODO Default of 0 will make the OS pick a free port for us
+  parser_start.add_argument('--port', type=int, default=0)
+
+  parser_start.add_argument('--stdout', type=str)
+  parser_start.add_argument('--stderr', type=str)
 
   parser_start.add_argument('--log', metavar='LEVEL', type=str,
       default='info',
@@ -175,6 +174,19 @@ def ParseArguments():
 
 if __name__ == "__main__":
   args = ParseArguments()
+
+  if args.stdout is not None:
+    print 'change stdout'
+    sys.stdout = open( args.stdout, 'w' )
+
+  if args.stderr is not None:
+    print 'change stderr'
+    if args.stdout == args.stderr:
+      sys.stderr = sys.stdout
+    else:
+      sys.stderr = open( args.stderr, 'w' )
+
   print 'Camel HTTP Server {}:{}'.format(args.host, args.port)
+
   _service = CamelService(args.host, args.port)
   _service.start()

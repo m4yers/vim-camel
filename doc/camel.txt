@@ -1,5 +1,4 @@
-*camel.txt*   Hump your input
-*camel*
+*camel.txt*    Hump your input
                                                          
 
               .,-:::::    :::.     .        :   .,::::::   :::        ~

@@ -1,3 +1,7 @@
+STATUS
+======
+Works for me;)
+
 TODO
 ====
  - [ ] Error handling
@@ -6,3 +10,4 @@ TODO
  - [ ] Variable name simplify, expand, generating, synonyms
  - [ ] Variable generation based on meta input?
  - [ ] Word search based on meta input?
+ - [ ] Windows?

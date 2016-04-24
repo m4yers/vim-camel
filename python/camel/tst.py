@@ -70,6 +70,18 @@ class TST(object):
       self._All(x.middle, string, prefix + char, collection)
 
 
+class _Node(object):
+
+  char   = None
+  left   = None
+  middle = None
+  right  = None
+  value  = None
+
+  def __init__(self, char):
+    self.char = char
+
+
 if __name__ == "__main__":
   words = [ "she", "sells", "sea", "shells", "by", "the", "sea", "shore"]
   tst = TST()
@@ -81,15 +93,3 @@ if __name__ == "__main__":
     assert tst.Get(word) == word
 
   print tst.AllPrefixesOf("shells")
-
-
-class _Node(object):
-
-  char   = None
-  left   = None
-  middle = None
-  right  = None
-  value  = None
-
-  def __init__(self, char):
-    self.char = char

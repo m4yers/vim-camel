@@ -3,8 +3,10 @@ let s:python_folder = s:plugin_root . '/python/camel/'
 
 function! camel#Connect()
     call s:Debug('Connect')
+    execute "pyfile " . s:python_folder . 'setup.py'
+    python SetupEnv(vim.eval("s:plugin_root"))
     execute "pyfile " . s:python_folder . 'camel.py'
-    python _camel = CamelClient("localhost", 8080)
+    python _camel = CamelClient(vim.eval("s:plugin_root"), "localhost", 8080)
     python _camel.Connect()
 endfunction
 
