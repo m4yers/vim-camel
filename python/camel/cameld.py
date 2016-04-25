@@ -85,10 +85,14 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 class CamelService():
 
-  def __init__(self, host, port, fdict):
+  def __init__(self, host, port, dicts):
     self.server = ThreadedHTTPServer((host, port), CamelRequestHandler)
     self.tst = TST()
 
+    for fdict in dicts:
+      self._AddDictionary(fdict)
+
+  def _AddDictionary(self, fdict):
     words = [word.rstrip('\n') for word in open(fdict)]
 
     print 'Got {} words'.format(len(words))
@@ -97,7 +101,8 @@ class CamelService():
     random.shuffle(words)
 
     for word in words:
-      self.tst.Put(word, word)
+      if len(word) > 1:
+        self.tst.Put(word, word)
 
   def start(self):
     self.server_thread = threading.Thread(target=self.server.serve_forever)
@@ -195,5 +200,5 @@ if __name__ == "__main__":
 
   print 'Camel HTTP Server {}:{}'.format(args.host, args.port)
 
-  _service = CamelService(args.host, args.port, args.dict)
+  _service = CamelService(args.host, args.port, args.dict.split(','))
   _service.start()

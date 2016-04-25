@@ -10,17 +10,18 @@ import time
 
 class CamelClient(object):
 
+  _opts = None
   _host = None
   _port = 0
   _paths = None
   _token = None
   _server_popen = None
 
-  def __init__(self, root, host, port):
-    self._paths = CamelPaths(root)
-    self._host = host
-    self._port = port
+  def __init__(self, opts):
+    self._paths = CamelPaths(opts.root)
+    self._opts = opts
 
+  # FIXME make it dynamic, on first request
   def Connect(self, startService=True):
     assert self._token is None, "Already connected"
 
@@ -69,8 +70,8 @@ class CamelClient(object):
   def _Request(self, method, route, timeout = 2):
     try:
       connection = httplib.HTTPConnection(
-          self._host,
-          self._port,
+          self._opts.host,
+          self._opts.port,
           strict=True,
           timeout=timeout)
       connection.request(method, route)
@@ -99,9 +100,10 @@ class CamelClient(object):
         self._paths.Python(),
         self._paths.Server(),
         'start',
-        '--host={0}'.format(self._host),
-        '--port={0}'.format(self._port),
-        '--dict={0}'.format(self._paths.Root() + '/dict/foldoc.txt'),
+        '--host={0}'.format(self._opts.host),
+        '--port={0}'.format(self._opts.port),
+        '--dict={0}'.format(self._paths.Dictionary() +
+          ',{0}'.format(','.join(self._opts.dicts))),
         '--stdout={0}'.format(self._paths.ServerStdOut()),
         '--stderr={0}'.format(self._paths.ServerStdErr())
     ]
@@ -114,8 +116,8 @@ class CamelClient(object):
     print 'Service:'
     print str(args)
 
-    # FIXME wait 200ms till server fully started
-    time.sleep(0.2)
+    # FIXME wait 1s till server fully started
+    time.sleep(1)
 
     return self._ServiceIsAlive()
 
@@ -127,3 +129,20 @@ class CamelClient(object):
   def _ServiceIsAlive(self):
     # When the process hasn't finished yet, poll() returns None.
     return self._server_popen is not None and self._server_popen.poll() is None
+
+
+class CamelOptions(object):
+  host = None
+  port = 0
+  root = None
+  dicts = list()
+
+  def SetAddress(self, host, port):
+    self.host = host
+    self.port = port
+
+  def SetRoot(self, root):
+    self.root = root
+
+  def AddDicts(self, dicts):
+    self.dicts.extend(dicts)

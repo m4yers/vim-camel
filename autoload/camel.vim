@@ -6,7 +6,11 @@ function! camel#Connect()
     execute "pyfile " . s:python_folder . 'setup.py'
     python SetupEnv(vim.eval("s:plugin_root"))
     execute "pyfile " . s:python_folder . 'camel.py'
-    python _camel = CamelClient(vim.eval("s:plugin_root"), "localhost", 8080)
+    python _options = CamelOptions()
+    python _options.SetAddress("localhost", 8080)
+    python _options.SetRoot(vim.eval("s:plugin_root"))
+    python _options.AddDicts(vim.eval("g:camel_additional_dicts"))
+    python _camel = CamelClient(_options)
     python _camel.Connect()
 endfunction
 

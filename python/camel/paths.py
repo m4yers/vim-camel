@@ -18,8 +18,11 @@ class CamelPaths(object):
   def Root(self):
     return self._root
 
+  def Dictionary(self):
+    return os.path.join(self._root, 'dict', 'foldoc.txt')
+
   def Server(self):
-    return self._root + "/python/camel/cameld.py"
+    return os.path.join(self._root, 'python', 'camel', 'cameld.py')
 
   def ServerStdOut(self):
     return os.path.join(self._temp, 'cameld.out')
