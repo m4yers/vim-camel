@@ -3,3 +3,6 @@
 
 # Exclude auto generated vim doc tags.
 doc/tags
+
+# OS X
+.DS*
