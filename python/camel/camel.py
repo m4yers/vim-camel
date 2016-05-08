@@ -91,11 +91,11 @@ class CamelServiceEnableThread(Thread):
         print "after"
 
   def _Connect(self):
-    response = _Request(self._opts, "POST", "/users")
+    response = _Request(self._opts, "POST", "/users", timeout = 10)
     error = response['error']
 
     if error == 0:
-      self._token = response['json']['token']
+      self._token = response['json']['data']['token']
       print 'Token ', self._token
       return 0
 
@@ -141,8 +141,6 @@ def _Request(opts, method, route, timeout = 2):
     body = response.read()
   except socket.error as e:
     return { "error" : e.errno }
-  except e:
-    return e
 
   return {
       "error": 0,

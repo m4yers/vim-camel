@@ -6,12 +6,15 @@ import argparse
 import urlparse
 import random
 import json
+import uuid
+import time
 import re
 import sys
 
 from tst import TST
 
 
+SERVICE_KILL_TIME = 60.0 * 60 * 3 # 3hrs
 _service = None
 
 
@@ -26,11 +29,12 @@ class CamelRequestHandler(BaseHTTPRequestHandler):
     route = urlparse.urlparse(self.path)
 
     if route.path == '/users':
-      print 'post users'
-      self.send_response(200)
-      self.send_header('Content-Type', 'application/json')
-      self.end_headers()
-      self.wfile.write("{\"token\":\"blah-blah-blah\"}")
+      token = str(uuid.uuid4())
+      print token
+      self.Status(200)
+      self.Data({'token': token})
+      self.Finish()
+      _service.TouchUser(token)
 
   def do_GET(self):
     global _service
@@ -39,10 +43,9 @@ class CamelRequestHandler(BaseHTTPRequestHandler):
 
     if route.path == '/ping':
       print 'ping'
-      self.send_response(200)
-      self.send_header('Content-Type', 'application/json')
-      self.end_headers()
-      self.wfile.write("{\"data\":\"Pong\"}")
+      self.Status(200)
+      self.Data("Pong")
+      self.Finish()
     elif re.search('/humps/[^/]*', route.path):
       word = route.path.split('/')[-1].lower()
       self.Status(200)
@@ -57,13 +60,13 @@ class CamelRequestHandler(BaseHTTPRequestHandler):
 
     # This shutdowns the service
     if route.path == '/service':
-      _service.stop()
-      self.send_response(204)
-      self.end_headers()
+      _service.Stop()
+      self.Status(204)
+      self.Finish()
     elif re.search('/users/[^/]*', route.path):
       print 'delete users'
-      self.send_response(204)
-      self.end_headers()
+      self.Status(204)
+      self.Finish()
 
   def Status(self, status):
     self.status = status
@@ -83,38 +86,74 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
   pass
 
 
+class CamelUser():
+
+  def __init__(self, token):
+    self.token = token
+    self.last_time = time.time()
+
+
 class CamelService():
 
   def __init__(self, host, port, dicts):
-    self.server = ThreadedHTTPServer((host, port), CamelRequestHandler)
-    self.tst = TST()
+    self._server = ThreadedHTTPServer((host, port), CamelRequestHandler)
+    self._tst = TST()
+    self._users = dict()
+    self._users_lock = threading.Lock()
+    self._kill_timer = None
 
     for fdict in dicts:
       self._AddDictionary(fdict)
 
-  def _AddDictionary(self, fdict):
-    words = [word.rstrip('\n') for word in open(fdict)]
+  def TouchUser(self, token):
+    with self._users_lock:
+      if token in self._users:
+        user = self._users[token]
+      else:
+        print 'New user with token {}'.format(token)
+        user = CamelUser(token)
+        self._users[token] = user
 
-    print 'Got {} words'.format(len(words))
+      user.last_time = time.time()
 
-    # This prevents worst case time for TST since horizontaly it is a list
-    random.shuffle(words)
+  def UpdateTimer(self, delay = SERVICE_KILL_TIME):
+    if self._kill_timer is not None:
+      self._kill_timer.cancel()
 
-    for word in words:
-      if len(word) > 1:
-        self.tst.Put(word, word)
+    self._kill_timer = threading.Timer(delay, self._CheckStatus)
+    self._kill_timer.start()
 
-  def start(self):
-    self.server_thread = threading.Thread(target=self.server.serve_forever)
+  def _CheckStatus(self):
+    with self._users_lock:
+      now = time.time()
+      longest = now
+      for token, user in self._users.items():
+        longest = min(longest, user.last_time)
+        if now - user.last_time >= SERVICE_KILL_TIME:
+          print 'Kill user with token {}'.format(token)
+          del self._users[token]
+
+      if len(self._users):
+        print 'There are still some users connected, restart the timer'
+        self.UpdateTimer(SERVICE_KILL_TIME - (now - longest))
+        return
+
+      print 'No activity for the last {} seconds'.format(SERVICE_KILL_TIME)
+      self.Stop()
+
+  def Start(self):
+    self.server_thread = threading.Thread(target=self._server.serve_forever)
     # self.server_thread.daemon = True
     self.server_thread.start()
+    self.UpdateTimer()
 
-  def waitForThread(self):
+  def WaitForThread(self):
     self.server_thread.join()
 
-  def stop(self):
-    self.server.shutdown()
-    self.waitForThread()
+  def Stop(self):
+    print 'Goodbye cruel world...'
+    self._server.shutdown()
+    self.WaitForThread()
 
   def ToCamelCase(self, string):
     result = list()
@@ -129,10 +168,22 @@ class CamelService():
 
     return result
 
+  def _AddDictionary(self, fdict):
+    words = [word.rstrip('\n') for word in open(fdict)]
+
+    print 'Got {} words'.format(len(words))
+
+    # This prevents worst case time for TST since horizontaly it is a list
+    random.shuffle(words)
+
+    for word in words:
+      if len(word) > 1:
+        self._tst.Put(word, word)
+
   def _BreakIntoWords(self, string, groups, current, bad):
     assert len(string) != 0, "Must not be empty"
     # Use longest matches first
-    prefixes = self.tst.AllPrefixesOf(string)[::-1]
+    prefixes = self._tst.AllPrefixesOf(string)[::-1]
 
     if len(prefixes) == 0:
       bad += string[0:1]
@@ -201,4 +252,4 @@ if __name__ == "__main__":
   print 'Camel HTTP Server {}:{}'.format(args.host, args.port)
 
   _service = CamelService(args.host, args.port, args.dict.split(','))
-  _service.start()
+  _service.Start()
