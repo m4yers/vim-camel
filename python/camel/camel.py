@@ -1,6 +1,7 @@
 from paths import CamelPaths
 
 import subprocess
+from threading import Thread
 import socket
 import errno
 import httplib
@@ -11,21 +12,86 @@ import time
 class CamelClient(object):
 
   _opts = None
-  _host = None
-  _port = 0
   _paths = None
   _token = None
-  _server_popen = None
+  _enabler = None
 
   def __init__(self, opts):
     self._paths = CamelPaths(opts.root)
     self._opts = opts
 
-  # FIXME make it dynamic, on first request
-  def Connect(self, startService=True):
-    assert self._token is None, "Already connected"
+  def Enable(self):
 
-    response = self._Request("POST", "/users")
+    # We are currently trying to enable the service
+    if self._enabler is not None:
+      return
+
+    self._enabler = CamelServiceEnableThread(self._opts, self._paths)
+    self._enabler.start()
+
+  def Disable(self):
+    # TODO terminate enabling thread here
+    if self._token:
+      _Request(self._opts, "DELETE", "/users/{0}".format(self._token))
+      self._token = None
+
+  def Version(self):
+    if not self._IsEnabled():
+      print 'Service is not enabled'
+      return
+
+    return _Request(self._opts, "GET", "/service/version")
+
+  def Ping(self):
+    if not self._IsEnabled():
+      print 'Service is not enabled'
+      return
+
+    return _Request(self._opts, "GET", "/ping")
+
+  def Hump(self, style, raw):
+    if not self._IsEnabled():
+      print 'Service is not enabled'
+      return
+
+    return _Request(self._opts, "GET",
+        "/humps/{0}?style={1}".format(raw, style))
+
+  def _IsEnabled(self):
+    if self._enabler is None:
+      return self._token is not None
+
+    if self._enabler.is_alive():
+      return False
+
+    self._token = self._enabler.get_token()
+    self._enabler = None
+
+    return self._token is not None
+
+
+class CamelServiceEnableThread(Thread):
+
+  def __init__(self, opts, paths):
+    Thread.__init__(self)
+    self._opts = opts
+    self._paths = paths
+    self._token = None
+
+  def run(self):
+    error = self._Connect()
+    if error == 0:
+      return
+
+    # Seems server is not running
+    if error == errno.ECONNREFUSED:
+      if self._ServiceStart():
+        while self._Connect() != 0:
+          time.sleep(1)
+        print "after"
+
+  def _Connect(self):
+    response = _Request(self._opts, "POST", "/users")
     error = response['error']
 
     if error == 0:
@@ -33,69 +99,9 @@ class CamelClient(object):
       print 'Token ', self._token
       return 0
 
-    # We want to try create new service only once
-    if not startService:
-      return 1
-
-    # Seems server is not running
-    if error == errno.ECONNREFUSED:
-      if not self._ServiceStart():
-        return 1
-
-    return self.Connect(False)
-
-  def Disconnect(self):
-    if self._token:
-      self._Request("DELETE", "/users/{0}".format(self._token))
-      self._ServiceStop()
-      self._token = None
-
-  def Version(self):
-    return self._Request("GET", "/service/version")
-
-  def Status(self):
-    if self._ServiceIsAlive():
-      # TODO GET /service/status
-      return { 'alive': True, 'pid': self._server_popen.pid }
-    else:
-      return { 'alive': False }
-
-  def Ping(self):
-    return self._Request("GET", "/ping")
-
-  def Hump(self, style, raw):
-    return self._Request("GET",
-        "/humps/{0}?style={1}".format(raw, style))
-
-  def _Request(self, method, route, timeout = 2):
-    try:
-      connection = httplib.HTTPConnection(
-          self._opts.host,
-          self._opts.port,
-          strict=True,
-          timeout=timeout)
-      connection.request(method, route)
-      response = connection.getresponse()
-      body = response.read()
-    except socket.error as e:
-      print 'Socket Error ' + str(e)
-      return { "error" : e.errno }
-    except:
-      print 'Exception'
-
-    return {
-        # TODO fix this, should be None but freaking vim cannot convert it
-        "error": 0,
-        "status": response.status,
-        "json": json.loads(body) if body else None }
-
-
-  #######################
-  #  Service lifecycle  #
-  #######################
+    return error
 
   def _ServiceStart(self):
-    assert not self._ServiceIsAlive(), "Server is already running"
     args = [
         self._paths.Python(),
         self._paths.Server(),
@@ -116,19 +122,32 @@ class CamelClient(object):
     print 'Service:'
     print str(args)
 
-    # FIXME wait 1s till server fully started
-    time.sleep(1)
+    return True
 
-    return self._ServiceIsAlive()
+  def get_token(self):
+    return self._token
 
-  def _ServiceStop(self):
-    if self._ServiceIsAlive():
-      self._server_popen.terminate()
-      self._server_popen = None
 
-  def _ServiceIsAlive(self):
-    # When the process hasn't finished yet, poll() returns None.
-    return self._server_popen is not None and self._server_popen.poll() is None
+def _Request(opts, method, route, timeout = 2):
+
+  try:
+    connection = httplib.HTTPConnection(
+        opts.host,
+        opts.port,
+        strict=True,
+        timeout=timeout)
+    connection.request(method, route)
+    response = connection.getresponse()
+    body = response.read()
+  except socket.error as e:
+    return { "error" : e.errno }
+  except e:
+    return e
+
+  return {
+      "error": 0,
+      "status": response.status,
+      "json": json.loads(body) if body else None }
 
 
 class CamelOptions(object):

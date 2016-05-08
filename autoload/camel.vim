@@ -1,8 +1,8 @@
 let s:plugin_root = escape( expand( '<sfile>:p:h:h' ), '\' )
 let s:python_folder = s:plugin_root . '/python/camel/'
 
-function! camel#Connect()
-    call s:Debug('Connect')
+function! camel#Enable()
+    call s:Debug('Enable')
     execute "pyfile " . s:python_folder . 'setup.py'
     python SetupEnv(vim.eval("s:plugin_root"))
     execute "pyfile " . s:python_folder . 'camel.py'
@@ -11,12 +11,12 @@ function! camel#Connect()
     python _options.SetRoot(vim.eval("s:plugin_root"))
     python _options.AddDicts(vim.eval("g:camel_additional_dicts"))
     python _camel = CamelClient(_options)
-    python _camel.Connect()
+    python _camel.Enable()
 endfunction
 
-function! camel#Disconnect()
-    call s:Debug('Disconnect')
-    python _camel.Disconnect()
+function! camel#Disable()
+    call s:Debug('Disable')
+    python _camel.Disable()
     python _camel = None
 endfunction
 

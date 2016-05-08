@@ -12,6 +12,6 @@ let g:camel_loaded = 1
 
 augroup camel_lifecycle
     autocmd!
-    autocmd VimEnter * call camel#Connect()
-    autocmd VimLeave * call camel#Disconnect()
+    autocmd VimEnter * call camel#Enable()
+    autocmd VimLeave * call camel#Disable()
 augroup end
