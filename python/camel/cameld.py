@@ -6,7 +6,6 @@ import argparse
 import urlparse
 import random
 import json
-import uuid
 import time
 import re
 import sys
@@ -23,18 +22,9 @@ class CamelRequestHandler(BaseHTTPRequestHandler):
   data = dict()
   status = 200
 
-  def do_POST(self):
-    global _service
-
-    route = urlparse.urlparse(self.path)
-
-    if route.path == '/users':
-      token = str(uuid.uuid4())
-      print token
-      self.Status(200)
-      self.Data({'token': token})
-      self.Finish()
-      _service.TouchUser(token)
+  def handle(self):
+    _service.Touch()
+    BaseHTTPRequestHandler.handle(self)
 
   def do_GET(self):
     global _service
@@ -42,7 +32,6 @@ class CamelRequestHandler(BaseHTTPRequestHandler):
     route = urlparse.urlparse(self.path)
 
     if route.path == '/ping':
-      print 'ping'
       self.Status(200)
       self.Data("Pong")
       self.Finish()
@@ -56,17 +45,12 @@ class CamelRequestHandler(BaseHTTPRequestHandler):
     global _service
 
     route = urlparse.urlparse(self.path)
-    # query = urlparse.parse_qs(route.query)
 
     # This shutdowns the service
     if route.path == '/service':
+      self.Status(204)
+      self.Finish()
       _service.Stop()
-      self.Status(204)
-      self.Finish()
-    elif re.search('/users/[^/]*', route.path):
-      print 'delete users'
-      self.Status(204)
-      self.Finish()
 
   def Status(self, status):
     self.status = status
@@ -76,21 +60,14 @@ class CamelRequestHandler(BaseHTTPRequestHandler):
 
   def Finish(self):
     self.send_response(self.status)
-    self.send_header('Content-Type', 'application/json')
+    if self.data is not None:
+      self.send_header('Content-Type', 'application/json')
     self.end_headers()
     json.dump({"data": self.data}, self.wfile)
-    # self.wfile.write(json.dumps({"data": data}))
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
   pass
-
-
-class CamelUser():
-
-  def __init__(self, token):
-    self.token = token
-    self.last_time = time.time()
 
 
 class CamelService():
@@ -98,62 +75,50 @@ class CamelService():
   def __init__(self, host, port, dicts):
     self._server = ThreadedHTTPServer((host, port), CamelRequestHandler)
     self._tst = TST()
-    self._users = dict()
-    self._users_lock = threading.Lock()
+    self._last_time = time.time()
+    self._last_time_lock = threading.Lock()
     self._kill_timer = None
 
     for fdict in dicts:
       self._AddDictionary(fdict)
 
-  def TouchUser(self, token):
-    with self._users_lock:
-      if token in self._users:
-        user = self._users[token]
-      else:
-        print 'New user with token {}'.format(token)
-        user = CamelUser(token)
-        self._users[token] = user
+  def Touch(self):
+    with self._last_time_lock:
+      self._last_time = time.time()
 
-      user.last_time = time.time()
-
-  def UpdateTimer(self, delay = SERVICE_KILL_TIME):
+  def TimerUpdate(self, delay = SERVICE_KILL_TIME):
     if self._kill_timer is not None:
       self._kill_timer.cancel()
 
     self._kill_timer = threading.Timer(delay, self._CheckStatus)
     self._kill_timer.start()
 
-  def _CheckStatus(self):
-    with self._users_lock:
-      now = time.time()
-      longest = now
-      for token, user in self._users.items():
-        longest = min(longest, user.last_time)
-        if now - user.last_time >= SERVICE_KILL_TIME:
-          print 'Kill user with token {}'.format(token)
-          del self._users[token]
+  def TimerKill(self):
+    if self._kill_timer:
+      self._kill_timer.cancel()
+      self._kill_timer = None
 
-      if len(self._users):
-        print 'There are still some users connected, restart the timer'
-        self.UpdateTimer(SERVICE_KILL_TIME - (now - longest))
+  def _CheckStatus(self):
+    with self._last_time_lock:
+      now = time.time()
+
+      if now - self._last_time < SERVICE_KILL_TIME:
+        self.TimerUpdate(SERVICE_KILL_TIME - (now - self._last_time))
         return
 
       print 'No activity for the last {} seconds'.format(SERVICE_KILL_TIME)
       self.Stop()
 
   def Start(self):
-    self.server_thread = threading.Thread(target=self._server.serve_forever)
-    # self.server_thread.daemon = True
-    self.server_thread.start()
-    self.UpdateTimer()
-
-  def WaitForThread(self):
-    self.server_thread.join()
+    self._server_thread = threading.Thread(target=self._server.serve_forever)
+    # self._server_thread.daemon = True
+    self._server_thread.start()
+    self.TimerUpdate()
 
   def Stop(self):
-    print 'Goodbye cruel world...'
+    self.TimerKill()
     self._server.shutdown()
-    self.WaitForThread()
+    self._server_thread.join()
 
   def ToCamelCase(self, string):
     result = list()

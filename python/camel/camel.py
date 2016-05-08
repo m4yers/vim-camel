@@ -13,7 +13,6 @@ class CamelClient(object):
 
   _opts = None
   _paths = None
-  _token = None
   _enabler = None
 
   def __init__(self, opts):
@@ -30,10 +29,7 @@ class CamelClient(object):
     self._enabler.start()
 
   def Disable(self):
-    # TODO terminate enabling thread here
-    if self._token:
-      _Request(self._opts, "DELETE", "/users/{0}".format(self._token))
-      self._token = None
+    pass
 
   def Version(self):
     if not self._IsEnabled():
@@ -59,15 +55,14 @@ class CamelClient(object):
 
   def _IsEnabled(self):
     if self._enabler is None:
-      return self._token is not None
+      return True
 
     if self._enabler.is_alive():
       return False
 
-    self._token = self._enabler.get_token()
     self._enabler = None
 
-    return self._token is not None
+    return True
 
 
 class CamelServiceEnableThread(Thread):
@@ -76,27 +71,26 @@ class CamelServiceEnableThread(Thread):
     Thread.__init__(self)
     self._opts = opts
     self._paths = paths
-    self._token = None
 
   def run(self):
-    error = self._Connect()
+    error = self._Ping()
+
     if error == 0:
       return
 
     # Seems server is not running
     if error == errno.ECONNREFUSED:
       if self._ServiceStart():
-        while self._Connect() != 0:
+        while self._Ping() != 0:
           time.sleep(1)
         print "after"
 
-  def _Connect(self):
-    response = _Request(self._opts, "POST", "/users", timeout = 10)
+  def _Ping(self):
+    response = _Request(self._opts, "GET", "/ping", timeout = 10)
     error = response['error']
 
     if error == 0:
-      self._token = response['json']['data']['token']
-      print 'Token ', self._token
+      print 'Got pong, we are connected'
       return 0
 
     return error
@@ -123,9 +117,6 @@ class CamelServiceEnableThread(Thread):
     print str(args)
 
     return True
-
-  def get_token(self):
-    return self._token
 
 
 def _Request(opts, method, route, timeout = 2):
