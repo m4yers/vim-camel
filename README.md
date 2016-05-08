@@ -11,7 +11,8 @@ Usage
 Todo
 ====
  - [ ] Add doc
- - [ ] Add dict options
+ - [ ] Add user dict options
+ - [ ] Add service restart on plugin update
  - [ ] Add rules for word sufuxes lise 's', 'es' etc
  - [ ] Randomize port
  - [ ] Kill connected users after few hours of inactivity
