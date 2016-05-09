@@ -2,8 +2,8 @@ if exists('g:camel_loaded')
     finish
 endif
 
-nnoremap <leader>hh :set operatorfunc=camel#HumpTop<cr>g@iw
-nnoremap <leader>ha :set operatorfunc=camel#HumpAll<cr>g@iw
+nnoremap <leader><leader>hh :set operatorfunc=camel#HumpTop<cr>g@iw
+nnoremap <leader><leader>ha :set operatorfunc=camel#HumpAll<cr>g@iw
 
 let g:camel_port = 4321
 let g:camel_additional_dicts = ['/usr/share/dict/web2']
