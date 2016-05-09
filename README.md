@@ -11,6 +11,7 @@ Usage
 Todo
 ====
  - [ ] Add doc
+ - [ ] optimize dict loading speed
  - [ ] Add user dict options
  - [ ] Add service restart on plugin update
  - [ ] Add rules for word sufuxes lise 's', 'es' etc

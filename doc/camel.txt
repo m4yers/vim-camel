@@ -1,5 +1,5 @@
 *camel.txt*    Hump your input
-                                                         
+
 
               .,-:::::    :::.     .        :   .,::::::   :::        ~
             ,;;;'````'    ;;`;;    ;;,.    ;;;  ;;;;''''   ;;;        ~
@@ -7,7 +7,7 @@
             $$$         c$$$cc$$$c $$$$$$$$"$$$  $$""""    $$'        ~
             `88bo,__,o,  888   888,888 Y88" 888o 888oo,__ o88oo,.__   ~
               "YUMMMMMP" YMM   ""` MMM  M'  "MMM """"YUMMM """YUMMM   ~
-  
+
                     .---.                                             ~
         .----.    .'     '.                                           ~
       .'      '..'         '-.                                        ~
@@ -18,3 +18,63 @@ _.'                                                                   ~
 
 ==============================================================================
 CONTENTS                                                  *camel-contents*
+
+   01. Intro ............................................... |camel-intro|
+   02. Features ......................................... |camel-features|
+   03. Configuration ............................... |camel-configuration|
+   04. Commands ......................................... |camel-commands|
+   05. Troubleshooting ........................... |camel-troubleshooting|
+   06. Contributions ............................... |camel-contributions|
+   07. License ........................................... |camel-license|
+
+==============================================================================
+INTRODUCTION                                                 *camel-intro*
+
+vim-camel provides auto-casing functionality to vim.
+
+==============================================================================
+FEATURES                                                  *camel-features*
+
+*  client-server model; service is created once for all vim instances.
+*  TODO multitude of casing styles
+*  TODO user dictionaries
+*  TODO sentences
+*  TODO words correction
+
+==============================================================================
+CONFIGURATION                                        *camel-configuration*
+
+TODO elaborate more on functions and parameters here
+There are two default key mappings:
+>
+   nnoremap <leader><leader>hh :set operatorfunc=camel#HumpTop<cr>g@iw
+   nnoremap <leader><leader>ha :set operatorfunc=camel#HumpAll<cr>g@iw
+<
+the first one tries to case the word immediately, the second one provides
+a list of suggestions. If you wish you can remap these to different keys
+
+==============================================================================
+COMMANDS                                                  *camel-commands*
+
+TODO kill command
+
+==============================================================================
+TROUBLESHOOTING                                    *camel-troubleshooting*
+
+The server has kill timer set for 3hrs, if there was no activity during this
+period the service will suicide. You can kill it with appropriate command or
+manually using curl:
+>
+   curl -X DELETE http://localhost:<PORT>/service
+<
+==============================================================================
+CONTRIBUTIONS                                        *camel-contributions*
+
+Contributions and pull requests are welcome.
+
+==============================================================================
+LICENSE                                                    *camel-license*
+
+MIT License.  Copyright © 2016 Artyom Goncharov.
+
+ vim:tw=78:ts=8:ft=help:norl:
