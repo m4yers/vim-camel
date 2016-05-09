@@ -1,6 +1,14 @@
 class TST(object):
 
-  _root = None
+  def __init__(self):
+    self._root = None
+    self._size = 0
+
+  def __str__(self):
+    return '[TST size {}]'.format(self._size)
+
+  def Size(self):
+    return self._size
 
   def Put(self, key, value):
     self._root = self._Put(self._root, key, value, 0)
@@ -18,6 +26,8 @@ class TST(object):
     elif depth < len(key) - 1:
       x.middle = self._Put(x.middle, key, value, depth + 1)
     else:
+      if x.value is None and value is not None:
+        self._size += 1
       x.value = value
 
     return x
@@ -65,6 +75,8 @@ class TST(object):
       if current:
         self._root = self._Take(self._root, current)
 
+    self._size += other._size
+
   def _Take(self, x, other):
     if not x:
       return other
@@ -106,14 +118,12 @@ class TST(object):
 
 class _Node(object):
 
-  char   = None
-  left   = None
-  middle = None
-  right  = None
-  value  = None
-
   def __init__(self, char):
-    self.char = char
+    self.char   = char
+    self.left   = None
+    self.middle = None
+    self.right  = None
+    self.value  = None
 
 
 if __name__ == "__main__":
@@ -126,6 +136,7 @@ if __name__ == "__main__":
   for word in words:
     assert tst.Get(word) == word
 
+  assert tst.Size() == len(set(words))
   print tst.AllPrefixesOf("shells")
 
   # test Take
