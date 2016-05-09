@@ -101,9 +101,10 @@ class CamelService():
   def _CheckStatus(self):
     with self._last_time_lock:
       now = time.time()
+      diff = now - self._last_time
 
-      if now - self._last_time < SERVICE_KILL_TIME:
-        self.TimerUpdate(SERVICE_KILL_TIME - (now - self._last_time))
+      if diff < SERVICE_KILL_TIME:
+        self.TimerUpdate(SERVICE_KILL_TIME - (diff))
         return
 
       print 'No activity for the last {} seconds'.format(SERVICE_KILL_TIME)
