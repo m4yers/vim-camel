@@ -72,15 +72,13 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 class CamelService():
 
-  def __init__(self, host, port, dicts):
-    self._server = ThreadedHTTPServer((host, port), CamelRequestHandler)
+  def __init__(self, host, port):
+    self._host = host
+    self._port = port
     self._tst = TST()
     self._last_time = time.time()
     self._last_time_lock = threading.Lock()
     self._kill_timer = None
-
-    for fdict in dicts:
-      self._AddDictionary(fdict)
 
   def Touch(self):
     with self._last_time_lock:
@@ -111,12 +109,16 @@ class CamelService():
       self.Stop()
 
   def Start(self):
+    print 'CamelService Start'
+    self._server = ThreadedHTTPServer(
+      (self._host, self._port), CamelRequestHandler)
     self._server_thread = threading.Thread(target=self._server.serve_forever)
     # self._server_thread.daemon = True
     self._server_thread.start()
     self.TimerUpdate()
 
   def Stop(self):
+    print 'CamelService Stop'
     self.TimerKill()
     self._server.shutdown()
     self._server_thread.join()
@@ -134,7 +136,11 @@ class CamelService():
 
     return result
 
-  def _AddDictionary(self, fdict):
+  def AddDictionaries(self, dicts):
+    for fdict in dicts:
+      self.AddDictionary(fdict)
+
+  def AddDictionary(self, fdict):
     words = [word.rstrip('\n') for word in open(fdict)]
 
     print 'Got {} words'.format(len(words))
@@ -217,5 +223,6 @@ if __name__ == "__main__":
 
   print 'Camel HTTP Server {}:{}'.format(args.host, args.port)
 
-  _service = CamelService(args.host, args.port, args.dict.split(','))
+  _service = CamelService(args.host, args.port)
+  _service.AddDictionaries(args.dict.split(','))
   _service.Start()
