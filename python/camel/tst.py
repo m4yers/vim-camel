@@ -44,6 +44,40 @@ class TST(object):
 
     return x
 
+  def Take(self, other):
+    """Take in other TST as sub trees
+
+    :other: Other TST instance, MUST not contain overlapping nodes
+
+    """
+
+    self._Take(self._root, other._root)
+
+    current = other._root
+    while current is not None:
+      current = current.left
+      if current:
+        self._root = self._Take(self._root, current)
+
+    current = other._root
+    while current is not None:
+      current = current.right
+      if current:
+        self._root = self._Take(self._root, current)
+
+  def _Take(self, x, other):
+    if not x:
+      return other
+
+    if other.char == x.char:
+      raise ValueError('Passed TST contains overlapping nodes')
+    elif other.char < x.char:
+      x.left = self._Take(x.left, other)
+    elif other.char > x.char:
+      x.right = self._Take(x.right, other)
+
+    return x
+
   def AllPrefixesOf(self, string):
     collection = list()
     self._All(self._root, string, "", collection)
@@ -93,3 +127,17 @@ if __name__ == "__main__":
     assert tst.Get(word) == word
 
   print tst.AllPrefixesOf("shells")
+
+  # test Take
+  others = ["green", "wut", "oops"]
+  otst = TST()
+  for word in others:
+    otst.Put(word, word)
+
+  tst.Take(otst)
+
+  for word in words:
+    assert tst.Get(word) == word
+
+  for word in others:
+    assert tst.Get(word) == word
