@@ -1,6 +1,7 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from SocketServer import ThreadingMixIn
 
+import concurrent.futures
 import threading
 import argparse
 import urlparse
@@ -140,17 +141,43 @@ class CamelService():
     for fdict in dicts:
       self.AddDictionary(fdict)
 
+    print 'Total words: {}'.format(self._tst.Size())
+
   def AddDictionary(self, fdict):
-    words = [word.rstrip('\n') for word in open(fdict)]
+    print 'AddDictionary {}'.format(fdict)
 
-    print 'Got {} words'.format(len(words))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
 
-    # This prevents worst case time for TST since horizontaly it is a list
+      futures = list()
+      words = list()
+      letter = ""
+      for word in [word.rstrip('\n') for word in open(fdict)]:
+        # this assumes the dictionary is in order
+        if word[0].lower() == letter.lower():
+          words.append(word)
+        else:
+          futures.append(executor.submit(self.CreateTST, words))
+          letter = word[0]
+          words = list(word)
+
+      for future in concurrent.futures.as_completed(futures):
+        try:
+          tst = future.result()
+        except Exception as e:
+          print e
+        else:
+          print 'got {}'.format(tst)
+          self._tst.Take(tst)
+
+  def CreateTST(self, words):
+    # This prevents worst case time for TST
     random.shuffle(words)
 
+    tst = TST()
     for word in words:
       if len(word) > 1:
-        self._tst.Put(word, word)
+        tst.Put(word, word)
+    return tst
 
   def _BreakIntoWords(self, string, groups, current, bad):
     assert len(string) != 0, "Must not be empty"
