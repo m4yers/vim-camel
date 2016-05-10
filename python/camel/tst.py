@@ -100,10 +100,13 @@ class TST(object):
 
     """
 
+    if other.Size() == 0:
+      return
+
     for tst in other.ToForest():
       assert tst._root.left is None
       assert tst._root.right is None
-      self._Take(self._root, tst._root)
+      self._root = self._Take(self._root, tst._root)
 
     self._size = self._root.size
 
