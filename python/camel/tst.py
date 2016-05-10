@@ -10,8 +10,20 @@ class TST(object):
   def Size(self):
     return self._size
 
+  def _UpdateSize(self, x):
+    ts = 1 if x.value is not None else 0
+    ls = x.left.size if x.left is not None else 0
+    rs = x.right.size if x.right is not None else 0
+    ms = x.middle.size if x.middle is not None else 0
+    x.size = ts + ls + rs + ms
+
   def Put(self, key, value):
+    if value is None:
+      self.Delete(key)
+      return
+
     self._root = self._Put(self._root, key, value, 0)
+    self._size = self._root.size
 
   def _Put(self, x, key, value, depth):
     char = key[depth]
@@ -26,11 +38,38 @@ class TST(object):
     elif depth < len(key) - 1:
       x.middle = self._Put(x.middle, key, value, depth + 1)
     else:
-      if x.value is None and value is not None:
-        self._size += 1
       x.value = value
 
+    self._UpdateSize(x)
     return x
+
+  def Delete(self, key):
+    """Delete key from TST
+
+    :key: Key to delete
+
+    """
+    self._Delete(self._root, key, 0)
+    self._size = self._root.size
+
+  def _Delete(self, x, key, depth):
+    char = key[depth]
+
+    if not x:
+      x = _Node(char)
+
+    if char < x.char:
+      x.left = self._Put(x.left, key, depth)
+    elif char > x.char:
+      x.right = self._Put(x.right, key, depth)
+    elif depth < len(key) - 1:
+      x.middle = self._Put(x.middle, key, depth + 1)
+    else:
+      x.value = None
+
+    # If there are no other nodes bellow we remove whole branch
+    self._UpdateSize(x)
+    return None if x.size == 0 else x
 
   def Get(self, key):
     node = self._Get(self._root, key, 0)
@@ -61,9 +100,12 @@ class TST(object):
 
     """
 
-    self._size += other._size
     for tst in other.ToForest():
+      assert tst._root.left is None
+      assert tst._root.right is None
       self._Take(self._root, tst._root)
+
+    self._size = self._root.size
 
   def _Take(self, x, other):
     if not x:
@@ -77,6 +119,7 @@ class TST(object):
     elif other.char > x.char:
       x.right = self._Take(x.right, other)
 
+    self._UpdateSize(x)
     return x
 
   def ToForest(self):
@@ -99,9 +142,10 @@ class TST(object):
 
     self._ToForest(x.left, result)
 
+    x.size = x.middle.size
     tst = TST()
     tst._root = x
-    tst._size = 0 # TODO
+    tst._size = x.size
     result.append(tst)
 
     self._ToForest(x.right, result)
@@ -199,6 +243,7 @@ class _Node(object):
     self.middle = None
     self.right  = None
     self.value  = None
+    self.size   = 0    # including itself if value is not None
 
 
 # TODO move this into a separate test file,
@@ -210,13 +255,12 @@ if __name__ == "__main__":
   for word in words:
     tst.Put(word, word)
 
-  print tst.All()
+  print tst.Size()
 
   for word in words:
     assert tst.Get(word) == word
 
   assert tst.Size() == len(set(words))
-  print tst.AllPrefixesOf("shells")
 
   # test Take
   others = ["wut", "green", "ecce"]
@@ -224,17 +268,20 @@ if __name__ == "__main__":
   for word in others:
     otst.Put(word, word)
 
+  print otst.Size()
+
   tst.Take(otst)
 
   for word in words:
     assert tst.Get(word) == word
-
-  print tst.All()
 
   for word in others:
     assert tst.Get(word) == word
 
   # test AllPrefixesOfSize
   prefixes = tst.AllPrefixesOfSize(2)
-  print prefixes
-  # assert len(prefixes) == 9
+  assert len(prefixes) == 7
+
+  print tst.Size()
+  print tst.All()
+  print [str(t) for t in tst.ToForest()]
