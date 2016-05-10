@@ -61,28 +61,17 @@ class TST(object):
 
     """
 
-    self._Take(self._root, other._root)
-
-    current = other._root
-    while current is not None:
-      current = current.left
-      if current:
-        self._root = self._Take(self._root, current)
-
-    current = other._root
-    while current is not None:
-      current = current.right
-      if current:
-        self._root = self._Take(self._root, current)
-
     self._size += other._size
+    for tst in other.ToForest():
+      self._Take(self._root, tst._root)
 
   def _Take(self, x, other):
     if not x:
       return other
 
     if other.char == x.char:
-      raise ValueError('Passed TST contains overlapping nodes')
+      raise ValueError(
+        'Passed TST contains overlapping {} nodes'.format(other.char))
     elif other.char < x.char:
       x.left = self._Take(x.left, other)
     elif other.char > x.char:
@@ -90,12 +79,98 @@ class TST(object):
 
     return x
 
+  def ToForest(self):
+    """Split TST instance into a TST forest with a single root node.
+
+    :tst: TST instance
+    :returns: List of TST instances
+
+    """
+
+    result = list()
+    self._ToForest(self._root, result)
+    self._root = None
+    self._size = 0
+    return result
+
+  def _ToForest(self, x, result):
+    if not x:
+      return
+
+    self._ToForest(x.left, result)
+
+    tst = TST()
+    tst._root = x
+    tst._size = 0 # TODO
+    result.append(tst)
+
+    self._ToForest(x.right, result)
+
+    x.left = None
+    x.right = None
+
+  def All(self):
+    """Return all keys it the TST instance
+
+    :returns: List of all keys
+
+    """
+
+    result = list()
+    self._All(self._root, "", result)
+    return result
+
+  def _All(self, x, prefix, result):
+    if not x:
+      return
+
+    self._All(x.left, prefix, result)
+
+    if x.value:
+      result.append(prefix + x.char)
+
+    self._All(x.middle, prefix + x.char, result)
+
+    self._All(x.right, prefix, result)
+
+  def AllPrefixesOfSize(self, size):
+    """Returs all available string prefixes of argument size
+
+    :size: Size
+    :returns: All prefixes of argument size
+
+    """
+
+    result = list()
+    self._AllPrefixesOfSize(self._root, size, "", result)
+    return result
+
+  def _AllPrefixesOfSize(self, x, size, prefix, result):
+    """Collects all prefixes of argument size into result
+
+    :x: TODO
+    :size: TODO
+
+    """
+
+    if not x:
+      return
+
+    self._AllPrefixesOfSize(x.left, size, prefix, result)
+
+    if size == 1:
+      result.append(prefix + x.char)
+    else:
+      self._AllPrefixesOfSize(x.middle, size - 1, prefix + x.char, result)
+
+    self._AllPrefixesOfSize(x.right, size, prefix, result)
+
   def AllPrefixesOf(self, string):
     collection = list()
-    self._All(self._root, string, "", collection)
+    self._AllPrefixesOf(self._root, string, "", collection)
     return collection
 
-  def _All(self, x, string, prefix, collection):
+  def _AllPrefixesOf(self, x, string, prefix, collection):
     if not x:
       return
 
@@ -107,13 +182,13 @@ class TST(object):
     char = string[depth]
 
     if char < x.char:
-      self._All(x.left, string, prefix, collection)
+      self._AllPrefixesOf(x.left, string, prefix, collection)
     elif char > x.char:
-      self._All(x.right, string, prefix, collection)
+      self._AllPrefixesOf(x.right, string, prefix, collection)
     else:
       if x.value:
         collection.append(x.value)
-      self._All(x.middle, string, prefix + char, collection)
+      self._AllPrefixesOf(x.middle, string, prefix + char, collection)
 
 
 class _Node(object):
@@ -126,12 +201,16 @@ class _Node(object):
     self.value  = None
 
 
+# TODO move this into a separate test file,
+# and write proper tests, for fuck sake
 if __name__ == "__main__":
   words = [ "she", "sells", "sea", "shells", "by", "the", "sea", "shore"]
   tst = TST()
 
   for word in words:
     tst.Put(word, word)
+
+  print tst.All()
 
   for word in words:
     assert tst.Get(word) == word
@@ -140,7 +219,7 @@ if __name__ == "__main__":
   print tst.AllPrefixesOf("shells")
 
   # test Take
-  others = ["green", "wut", "oops"]
+  others = ["wut", "green", "ecce"]
   otst = TST()
   for word in others:
     otst.Put(word, word)
@@ -150,5 +229,12 @@ if __name__ == "__main__":
   for word in words:
     assert tst.Get(word) == word
 
+  print tst.All()
+
   for word in others:
     assert tst.Get(word) == word
+
+  # test AllPrefixesOfSize
+  prefixes = tst.AllPrefixesOfSize(2)
+  print prefixes
+  # assert len(prefixes) == 9
