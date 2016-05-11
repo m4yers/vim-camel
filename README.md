@@ -16,7 +16,7 @@ Todo
 ====
  - [ ] Add doc
  - [ ] Tests
- - [ ] optimize dict loading speed
+ - [ ] optimize dict loading speed, pickle?
  - [ ] Add user dict options
  - [ ] Add service restart on plugin update
  - [ ] Add rules for word sufuxes lise 's', 'es' etc
