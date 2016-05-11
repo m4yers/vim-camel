@@ -8,9 +8,14 @@ Instalation
 Usage
 =====
 
+Dependencies
+============
+pip install futures
+
 Todo
 ====
  - [ ] Add doc
+ - [ ] Tests
  - [ ] optimize dict loading speed
  - [ ] Add user dict options
  - [ ] Add service restart on plugin update
@@ -27,3 +32,7 @@ Todo
  - [ ] Variable generation based on meta input?
  - [ ] Word search based on meta input?
  - [ ] Windows?
+
+Bugs
+====
+ - [ ] cursor goes to the end of the word; it should stay on the same character
