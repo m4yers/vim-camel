@@ -11,13 +11,10 @@ import time
 
 class CamelClient(object):
 
-  _opts = None
-  _paths = None
-  _enabler = None
-
   def __init__(self, opts):
     self._paths = CamelPaths(opts.root)
     self._opts = opts
+    self._enabler = None
 
   def Enable(self):
 
