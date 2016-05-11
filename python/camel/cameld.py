@@ -138,42 +138,40 @@ class CamelService():
     return result
 
   def AddDictionaries(self, dicts):
-    for fdict in dicts:
-      self.AddDictionary(fdict)
-
-    print 'Total words: {}'.format(self._tst.Size())
-
-  def AddDictionary(self, fdict):
-    print 'AddDictionary {}'.format(fdict)
+    tsts = dict()
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+      for fdict in dicts:
+        futures = list()
+        words = list()
+        letter = ""
+        for word in [word.rstrip('\n') for word in open(fdict)]:
+          # this assumes the dictionary is in lower-case order
+          if word[0].lower() == letter.lower():
+            words.append(word)
+          else:
+            tst = tsts.get(letter, TST())
+            tsts[letter] = tst
+            futures.append(executor.submit(self.FillTST, tst, words))
+            letter = word[0].lower()
+            words = list(word)
 
-      futures = list()
-      words = list()
-      letter = ""
-      for word in [word.rstrip('\n') for word in open(fdict)]:
-        # this assumes the dictionary is in order
-        if word[0].lower() == letter.lower():
-          words.append(word)
-        else:
-          futures.append(executor.submit(self.CreateTST, words))
-          letter = word[0]
-          words = list(word)
+        for future in concurrent.futures.as_completed(futures):
+          try:
+            tst = future.result()
+          except Exception as e:
+            print e
 
-      for future in concurrent.futures.as_completed(futures):
-        try:
-          tst = future.result()
-        except Exception as e:
-          print e
-        else:
-          print 'got {}'.format(tst)
-          self._tst.Take(tst)
+    for tst in tsts.values():
+      # TODO Add posibility to merge two tsts if they are overlapping
+      self._tst.Take(tst)
 
-  def CreateTST(self, words):
+    print 'Added {} words'.format(self._tst.Size())
+
+  def FillTST(self, tst, words):
     # This prevents worst case time for TST
     random.shuffle(words)
 
-    tst = TST()
     for word in words:
       if len(word) > 1:
         tst.Put(word, word)
