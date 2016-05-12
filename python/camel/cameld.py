@@ -10,6 +10,7 @@ import json
 import time
 import re
 import sys
+import os
 
 from tst import TST
 
@@ -35,6 +36,10 @@ class CamelRequestHandler(BaseHTTPRequestHandler):
     if route.path == '/ping':
       self.Status(200)
       self.Data("Pong")
+      self.Finish()
+    elif route.path == '/status':
+      self.Status(200)
+      self.Data(_service.Status())
       self.Finish()
     elif re.search('/humps/[^/]*', route.path):
       word = route.path.split('/')[-1].lower()
@@ -77,9 +82,20 @@ class CamelService():
     self._host = host
     self._port = port
     self._tst = TST()
-    self._last_time = time.time()
+    self._start_time = time.time()
+    self._last_time = self._start_time
     self._last_time_lock = threading.Lock()
     self._kill_timer = None
+
+  def Status(self):
+    status = dict()
+    status['version'] = 0.1 # read from file on startup
+    status['stdout'] = sys.stdout.name
+    status['stderr'] = sys.stderr.name
+    status['address'] = '{}:{}'.format(self._host, self._port)
+    status['pid'] = os.getpid()
+    status['words'] = self._tst.Size()
+    return status
 
   def Touch(self):
     with self._last_time_lock:

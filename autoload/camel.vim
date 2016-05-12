@@ -2,7 +2,7 @@ let s:plugin_root = escape( expand( '<sfile>:p:h:h' ), '\' )
 let s:python_folder = s:plugin_root . '/python/camel/'
 
 function! camel#Enable()
-    call s:Debug('Enable')
+    call s:Emp('Enable')
     execute "pyfile " . s:python_folder . 'setup.py'
     python SetupEnv(vim.eval("s:plugin_root"))
     execute "pyfile " . s:python_folder . 'camel.py'
@@ -15,15 +15,23 @@ function! camel#Enable()
 endfunction
 
 function! camel#Disable()
-    call s:Debug('Disable')
+    call s:Emp('Disable')
     python _camel.Disable()
     python _camel = None
 endfunction
 
 function! camel#Ping()
-    call s:Debug('Ping')
+    call s:Ping('Disable')
     let result = pyeval('_camel.Ping()')
-    echom result.json.data
+    echo string(result.json.data)
+endfunction
+
+function! camel#Status()
+    let result = pyeval('_camel.Status()')
+    call s:Emp('Status')
+    for key in sort(keys(result.json.data))
+        echo printf('%-10s', key) . ": " . string(result.json.data[key])
+    endfor
 endfunction
 
 function! camel#HumpTop(type)
@@ -95,8 +103,12 @@ endfunction
 
 function! s:Debug(message)
     if exists('g:camel_verbose')
-        echohl WarningMsg | echom 'Camel: ' . a:message | echohl None
+        echom 'Camel: ' . a:message
     endif
+endfunction
+
+function! s:Emp(message)
+    echohl WarningMsg | echo 'Camel: ' . a:message | echohl None
 endfunction
 
 function! s:Error(message)

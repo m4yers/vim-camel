@@ -30,21 +30,28 @@ class CamelClient(object):
 
   def Version(self):
     if not self._IsEnabled():
-      print 'Service is not enabled'
+      print 'Camel is not enabled'
       return
 
     return _Request(self._opts, "GET", "/service/version")
 
   def Ping(self):
     if not self._IsEnabled():
-      print 'Service is not enabled'
+      print 'Camel is not enabled'
       return
 
     return _Request(self._opts, "GET", "/ping")
 
+  def Status(self):
+    if not self._IsEnabled():
+      print 'Camel is not enabled'
+      return
+
+    return _Request(self._opts, "GET", "/status")
+
   def Hump(self, style, raw):
     if not self._IsEnabled():
-      print 'Service is not enabled'
+      print 'Camel is not enabled'
       return
 
     return _Request(self._opts, "GET",
@@ -80,14 +87,12 @@ class CamelServiceEnableThread(Thread):
       if self._ServiceStart():
         while self._Ping() != 0:
           time.sleep(1)
-        print "after"
 
   def _Ping(self):
     response = _Request(self._opts, "GET", "/ping", timeout = 10)
     error = response['error']
 
     if error == 0:
-      print 'Got pong, we are connected'
       return 0
 
     return error
@@ -109,9 +114,6 @@ class CamelServiceEnableThread(Thread):
         args,
         stdout = subprocess.PIPE,
         stderr = subprocess.PIPE)
-
-    print 'Service:'
-    print str(args)
 
     return True
 
