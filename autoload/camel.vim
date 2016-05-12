@@ -23,14 +23,14 @@ endfunction
 function! camel#Ping()
     call s:Ping('Disable')
     let result = pyeval('_camel.Ping()')
-    echo string(result.json.data)
+    echo string(result)
 endfunction
 
 function! camel#Status()
     let result = pyeval('_camel.Status()')
     call s:Emp('Status')
-    for key in sort(keys(result.json.data))
-        echo printf('%-10s', key) . ": " . string(result.json.data[key])
+    for key in sort(keys(result))
+        echo printf('%-20s', key) . string(result[key])
     endfor
 endfunction
 
@@ -51,7 +51,7 @@ function! camel#HumpTop(type)
     endif
 
     let result = pyeval('_camel.Hump("camelcase","' . @@ . '")')
-    let @@ = result.json.data[0]
+    let @@ = result[0]
     execute 'normal! P'
 
     " callee restore
@@ -85,7 +85,7 @@ function! camel#HumpAll(type)
 endfunction
 
 function! camel#Complete()
-    call complete(s:complete_start, s:complete_result.json.data)
+    call complete(s:complete_start, s:complete_result)
     return ''
 endfunction
 

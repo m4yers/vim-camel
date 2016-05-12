@@ -16,6 +16,9 @@ class CamelClient(object):
     self._opts = opts
     self._enabler = None
 
+    with open('{}/VERSION'.format(self._paths.Root())) as v:
+      self._version = v.readline().rstrip()
+
   def Enable(self):
 
     # We are currently trying to enable the service
@@ -33,21 +36,24 @@ class CamelClient(object):
       print 'Camel is not enabled'
       return
 
-    return _Request(self._opts, "GET", "/service/version")
+    return _Request(self._opts, "GET", "/service/version")['json']['data']
 
   def Ping(self):
     if not self._IsEnabled():
       print 'Camel is not enabled'
       return
 
-    return _Request(self._opts, "GET", "/ping")
+    return _Request(self._opts, "GET", "/ping")['json']['data']
 
   def Status(self):
     if not self._IsEnabled():
       print 'Camel is not enabled'
       return
 
-    return _Request(self._opts, "GET", "/status")
+    result = _Request(self._opts, "GET", "/status")['json']['data']
+    result['client.root'] = self._paths.Root()
+    result['client.version'] = self._version
+    return result
 
   def Hump(self, style, raw):
     if not self._IsEnabled():
@@ -55,7 +61,7 @@ class CamelClient(object):
       return
 
     return _Request(self._opts, "GET",
-        "/humps/{0}?style={1}".format(raw, style))
+        "/humps/{0}?style={1}".format(raw, style)).json.data
 
   def _IsEnabled(self):
     if self._enabler is None:
@@ -102,12 +108,13 @@ class CamelServiceEnableThread(Thread):
         self._paths.Python(),
         self._paths.Server(),
         'start',
-        '--host={0}'.format(self._opts.host),
-        '--port={0}'.format(self._opts.port),
-        '--dict={0}'.format(self._paths.Dictionary() +
-          ',{0}'.format(','.join(self._opts.dicts))),
-        '--stdout={0}'.format(self._paths.ServerStdOut()),
-        '--stderr={0}'.format(self._paths.ServerStdErr())
+        '--root={}'.format(self._paths.Root()),
+        '--host={}'.format(self._opts.host),
+        '--port={}'.format(self._opts.port),
+        '--dict={}'.format(self._paths.Dictionary() +
+          ',{}'.format(','.join(self._opts.dicts))),
+        '--stdout={}'.format(self._paths.ServerStdOut()),
+        '--stderr={}'.format(self._paths.ServerStdErr())
     ]
 
     self._server_popen = subprocess.Popen(

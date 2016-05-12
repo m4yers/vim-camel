@@ -78,7 +78,10 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 class CamelService():
 
-  def __init__(self, host, port):
+  def __init__(self, root, host, port):
+    with open('{}/VERSION'.format(root)) as v:
+      self._version = v.readline().rstrip()
+    self._root = root
     self._host = host
     self._port = port
     self._tst = TST()
@@ -89,12 +92,13 @@ class CamelService():
 
   def Status(self):
     status = dict()
-    status['version'] = 0.1 # read from file on startup
-    status['stdout'] = sys.stdout.name
-    status['stderr'] = sys.stderr.name
-    status['address'] = '{}:{}'.format(self._host, self._port)
-    status['pid'] = os.getpid()
-    status['words'] = self._tst.Size()
+    status['server.version'] = self._version
+    status['server.stdout'] = sys.stdout.name
+    status['server.stderr'] = sys.stderr.name
+    status['server.address'] = '{}:{}'.format(self._host, self._port)
+    status['server.pid'] = os.getpid()
+    status['server.words'] = self._tst.Size()
+    status['server.root'] = self._root
     return status
 
   def Touch(self):
@@ -230,6 +234,8 @@ def ParseArguments():
 
   parser_start = subparsers.add_parser('start', help='Start Camel service')
 
+  parser_start.add_argument('--root', type=str, required=True)
+
   parser_start.add_argument('--host', type=str, default='127.0.0.1')
 
   # TODO Default of 0 will make the OS pick a free port for us
@@ -264,6 +270,6 @@ if __name__ == "__main__":
 
   print 'Camel HTTP Server {}:{}'.format(args.host, args.port)
 
-  _service = CamelService(args.host, args.port)
+  _service = CamelService(os.path.abspath(args.root), args.host, args.port)
   _service.AddDictionaries(args.dict.split(','))
   _service.Start()
