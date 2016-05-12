@@ -1,4 +1,4 @@
-let s:plugin_root = escape( expand( '<sfile>:p:h:h' ), '\' )
+let s:plugin_root = escape( expand( '<sfile>:p:h:h' ), ' \' )
 let s:python_folder = s:plugin_root . '/python/camel/'
 
 function! camel#Enable()
@@ -32,6 +32,10 @@ function! camel#Status()
     for key in sort(keys(result))
         echo printf('%-20s', key) . string(result[key])
     endfor
+endfunction
+
+function! camel#RestartService()
+    call s:Emp('RestartService')
 endfunction
 
 function! camel#HumpTop(type)
