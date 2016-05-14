@@ -36,6 +36,7 @@ endfunction
 
 function! camel#RestartService()
     call s:Emp('RestartService')
+    python _camel.RestartService()
 endfunction
 
 function! camel#HumpTop(type)

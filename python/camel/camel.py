@@ -15,6 +15,7 @@ class CamelClient(object):
     self._paths = CamelPaths(opts.root)
     self._opts = opts
     self._enabler = None
+    self._restarter = None
 
     with open('{}/VERSION'.format(self._paths.Root())) as v:
       self._version = v.readline().rstrip()
@@ -25,64 +26,10 @@ class CamelClient(object):
     if self._enabler is not None:
       return
 
-    self._enabler = CamelServiceEnableThread(self._opts, self._paths)
+    self._enabler = Thread(target=self._Enable)
     self._enabler.start()
 
-  def Disable(self):
-    pass
-
-  def Version(self):
-    if not self._IsEnabled():
-      print 'Camel is not enabled'
-      return
-
-    return _Request(self._opts, "GET", "/service/version")['json']['data']
-
-  def Ping(self):
-    if not self._IsEnabled():
-      print 'Camel is not enabled'
-      return
-
-    return _Request(self._opts, "GET", "/ping")['json']['data']
-
-  def Status(self):
-    if not self._IsEnabled():
-      print 'Camel is not enabled'
-      return
-
-    result = _Request(self._opts, "GET", "/status")['json']['data']
-    result['client.root'] = self._paths.Root()
-    result['client.version'] = self._version
-    return result
-
-  def Hump(self, style, raw):
-    if not self._IsEnabled():
-      print 'Camel is not enabled'
-      return
-
-    return _Request(self._opts, "GET",
-        "/humps/{0}?style={1}".format(raw, style)).json.data
-
-  def _IsEnabled(self):
-    if self._enabler is None:
-      return True
-
-    if self._enabler.is_alive():
-      return False
-
-    self._enabler = None
-
-    return True
-
-
-class CamelServiceEnableThread(Thread):
-
-  def __init__(self, opts, paths):
-    Thread.__init__(self)
-    self._opts = opts
-    self._paths = paths
-
-  def run(self):
+  def _Enable(self):
     error = self._Ping()
 
     if error == 0:
@@ -93,15 +40,6 @@ class CamelServiceEnableThread(Thread):
       if self._ServiceStart():
         while self._Ping() != 0:
           time.sleep(1)
-
-  def _Ping(self):
-    response = _Request(self._opts, "GET", "/ping", timeout = 10)
-    error = response['error']
-
-    if error == 0:
-      return 0
-
-    return error
 
   def _ServiceStart(self):
     args = [
@@ -124,25 +62,110 @@ class CamelServiceEnableThread(Thread):
 
     return True
 
+  def Disable(self):
+    pass
 
-def _Request(opts, method, route, timeout = 2):
+  def RestartService(self):
+    if not self._IsEnabled():
+      print 'Camel is not enabled'
+      return
 
-  try:
-    connection = httplib.HTTPConnection(
-        opts.host,
-        opts.port,
-        strict=True,
-        timeout=timeout)
-    connection.request(method, route)
-    response = connection.getresponse()
-    body = response.read()
-  except socket.error as e:
-    return { "error" : e.errno }
+    self._restarter = Thread(target=self._RestartService)
+    self._restarter.start()
 
-  return {
-      "error": 0,
-      "status": response.status,
-      "json": json.loads(body) if body else None }
+  def _RestartService(self):
+    # If we were enabling the service we need to wait till the job is done
+    if self._enabler is not None:
+      print 'Wait for enabler'
+      self._enabler.join()
+
+    # Kill the service
+    print 'Delete service'
+    self._Request("DELETE", "/service")
+
+    # Wait till the service is dead
+    print 'Wait till it dead'
+    while self._Ping() == 0:
+      time.sleep(1)
+
+    # Start the service again
+    print 'Run enabler'
+    self._enabler = Thread(target=self._Enable)
+    self._enabler.start()
+    self._enabler.join()
+
+  def Version(self):
+    if not self._IsEnabled():
+      print 'Camel is not enabled'
+      return
+
+    return self._Request("GET", "/service/version")['json']['data']
+
+  def Ping(self):
+    if not self._IsEnabled():
+      print 'Camel is not enabled'
+      return
+
+    return self._Request("GET", "/ping")['json']['data']
+
+  def Status(self):
+    if not self._IsEnabled():
+      print 'Camel is not enabled'
+      return
+
+    result = self._Request("GET", "/status")['json']['data']
+    result['client.root'] = self._paths.Root()
+    result['client.version'] = self._version
+    return result
+
+  def Hump(self, style, raw):
+    if not self._IsEnabled():
+      print 'Camel is not enabled'
+      return
+
+    return self._Request("GET",
+        "/humps/{0}?style={1}".format(raw, style))['json']['data']
+
+  def _IsEnabled(self):
+    if self._enabler is not None and self._enabler.is_alive():
+      return False
+    else:
+      self._enabler = None
+
+    if self._restarter is not None and self._restarter.is_alive():
+      return False
+    else:
+      self._restarter = None
+
+    return self._enabler is None and self._restarter is None
+
+  def _Ping(self):
+    response = self._Request("GET", "/ping", timeout = 10)
+    error = response['error']
+
+    if error == 0:
+      return 0
+
+    return error
+
+  def _Request(self, method, route, timeout = 2):
+
+    try:
+      connection = httplib.HTTPConnection(
+          self._opts.host,
+          self._opts.port,
+          strict=True,
+          timeout=timeout)
+      connection.request(method, route)
+      response = connection.getresponse()
+      body = response.read()
+    except socket.error as e:
+      return { "error" : e.errno }
+
+    return {
+        "error": 0,
+        "status": response.status,
+        "json": json.loads(body) if body else None }
 
 
 class CamelOptions(object):
