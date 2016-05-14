@@ -66,67 +66,43 @@ class CamelClient(object):
     pass
 
   def RestartService(self):
-    if not self._IsEnabled():
-      print 'Camel is not enabled'
-      return
-
     self._restarter = Thread(target=self._RestartService)
     self._restarter.start()
 
   def _RestartService(self):
     # If we were enabling the service we need to wait till the job is done
     if self._enabler is not None:
-      print 'Wait for enabler'
       self._enabler.join()
 
     # Kill the service
-    print 'Delete service'
     self._Request("DELETE", "/service")
 
     # Wait till the service is dead
-    print 'Wait till it dead'
     while self._Ping() == 0:
       time.sleep(1)
 
     # Start the service again
-    print 'Run enabler'
     self._enabler = Thread(target=self._Enable)
     self._enabler.start()
     self._enabler.join()
 
   def Version(self):
-    if not self._IsEnabled():
-      print 'Camel is not enabled'
-      return
-
     return self._Request("GET", "/service/version")['json']['data']
 
   def Ping(self):
-    if not self._IsEnabled():
-      print 'Camel is not enabled'
-      return
-
     return self._Request("GET", "/ping")['json']['data']
 
   def Status(self):
-    if not self._IsEnabled():
-      print 'Camel is not enabled'
-      return
-
     result = self._Request("GET", "/status")['json']['data']
     result['client.root'] = self._paths.Root()
     result['client.version'] = self._version
     return result
 
   def Hump(self, style, raw):
-    if not self._IsEnabled():
-      print 'Camel is not enabled'
-      return
+    result = self._Request("GET", "/humps/{0}?style={1}".format(raw, style))
+    return result['json']['data']
 
-    return self._Request("GET",
-        "/humps/{0}?style={1}".format(raw, style))['json']['data']
-
-  def _IsEnabled(self):
+  def IsEnabled(self):
     if self._enabler is not None and self._enabler.is_alive():
       return False
     else:

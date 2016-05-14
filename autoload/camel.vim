@@ -20,13 +20,27 @@ function! camel#Disable()
     python _camel = None
 endfunction
 
+function! camel#IsEnabled()
+    return pyeval('_camel.IsEnabled()')
+endfunction
+
 function! camel#Ping()
+    if !camel#IsEnabled()
+        call s:Emp('Camel is not enabled')
+        return
+    endif
+
     call s:Ping('Disable')
     let result = pyeval('_camel.Ping()')
     echo string(result)
 endfunction
 
 function! camel#Status()
+    if !camel#IsEnabled()
+        call s:Emp('Camel is not enabled')
+        return
+    endif
+
     let result = pyeval('_camel.Status()')
     call s:Emp('Status')
     for key in sort(keys(result))
@@ -35,11 +49,21 @@ function! camel#Status()
 endfunction
 
 function! camel#RestartService()
+    if !camel#IsEnabled()
+        call s:Emp('Camel is not enabled')
+        return
+    endif
+
     call s:Emp('RestartService')
     python _camel.RestartService()
 endfunction
 
 function! camel#HumpTop(type)
+    if !camel#IsEnabled()
+        call s:Emp('Camel is not enabled')
+        return
+    endif
+
     " callee save
     let saved_clipboard = &clipboard
     let saved_reg = @@
@@ -65,6 +89,11 @@ function! camel#HumpTop(type)
 endfunction
 
 function! camel#HumpAll(type)
+    if !camel#IsEnabled()
+        call s:Emp('Camel is not enabled')
+        return
+    endif
+
     " callee save
     let saved_clipboard = &clipboard
     let saved_reg = @@
