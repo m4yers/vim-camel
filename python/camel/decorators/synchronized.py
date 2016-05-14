@@ -1,5 +1,11 @@
-def synchronized(lock):
+from threading import Lock
+
+
+def synchronized(lock=None):
   '''Synchronization decorator.'''
+
+  if not lock:
+    lock = Lock()
 
   def wrap(f):
     def new_function(*args, **kw):
