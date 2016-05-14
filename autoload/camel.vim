@@ -20,13 +20,13 @@ function! camel#Disable()
     python _camel = None
 endfunction
 
-function! camel#IsEnabled()
-    return pyeval('_camel.IsEnabled()')
+function! camel#IsReady()
+    return pyeval('_camel.IsReady()')
 endfunction
 
 function! camel#Ping()
-    if !camel#IsEnabled()
-        call s:Emp('Is not enabled')
+    if !camel#IsReady()
+        call s:Emp('Is not ready')
         return
     endif
 
@@ -44,8 +44,8 @@ function! camel#Status()
 endfunction
 
 function! camel#RestartService()
-    if !camel#IsEnabled()
-        call s:Emp('Is not enabled')
+    if !camel#IsReady()
+        call s:Emp('Is not ready')
         return
     endif
 
@@ -54,8 +54,8 @@ function! camel#RestartService()
 endfunction
 
 function! camel#HumpTop(type)
-    if !camel#IsEnabled()
-        call s:Emp('Is not enabled')
+    if !camel#IsReady()
+        call s:Emp('Is not ready')
         return
     endif
 
@@ -84,8 +84,8 @@ function! camel#HumpTop(type)
 endfunction
 
 function! camel#HumpAll(type)
-    if !camel#IsEnabled()
-        call s:Emp('Is not enabled')
+    if !camel#IsReady()
+        call s:Emp('Is not ready')
         return
     endif
 

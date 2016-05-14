@@ -1,12 +1,12 @@
-from paths import CamelPaths
-
 import subprocess
-from threading import Thread
 import socket
 import errno
 import httplib
 import json
 import time
+
+from paths import CamelPaths
+from decorators.task import task
 
 
 class CamelClient(object):
@@ -14,25 +14,24 @@ class CamelClient(object):
   def __init__(self, opts):
     self._paths = CamelPaths(opts.root)
     self._opts = opts
-    self._starter = None
-    self._restarter = None
+    self._ready = False
 
     with open('{}/VERSION'.format(self._paths.Root())) as v:
       self._version = v.readline().rstrip()
 
   def Enable(self):
-
-    # We are currently trying to enable the service
-    if self._starter is not None:
+    if self._ready:
       return
 
-    self._starter = Thread(target=self._Enable)
-    self._starter.start()
+    self._Enable()
 
+  @task
   def _Enable(self):
+    self._ready = False
     error = self._Ping()
 
     if error == 0:
+      self._ready = True
       return
 
     # Seems server is not running
@@ -40,6 +39,8 @@ class CamelClient(object):
       if self._ServiceStart():
         while self._Ping() != 0:
           time.sleep(1)
+
+    self._ready = True
 
   def _ServiceStart(self):
     args = [
@@ -66,13 +67,14 @@ class CamelClient(object):
     pass
 
   def RestartService(self):
-    self._restarter = Thread(target=self._RestartService)
-    self._restarter.start()
+    self._RestartService()
 
+  @task
   def _RestartService(self):
+    self._ready = False
     # If we were enabling the service we need to wait till the job is done
-    if self._starter is not None:
-      self._starter.join()
+    if self._Enable.is_alive():
+      self._Enable.wait()
 
     # Kill the service
     self._Request("DELETE", "/service")
@@ -82,9 +84,8 @@ class CamelClient(object):
       time.sleep(1)
 
     # Start the service again
-    self._starter = Thread(target=self._Enable)
-    self._starter.start()
-    self._starter.join()
+    self._Enable().wait()
+    self._ready = True
 
   def Version(self):
     return self._Request("GET", "/service/version")['json']['data']
@@ -99,7 +100,7 @@ class CamelClient(object):
       result = result['json']['data']
     else:
       result = dict()
-      if self._restarter is not None:
+      if self._RestartService.is_alive():
         result['server.restarting'] = True
       else:
         result['server.starting'] = True
@@ -112,18 +113,8 @@ class CamelClient(object):
     result = self._Request("GET", "/humps/{0}?style={1}".format(raw, style))
     return result['json']['data']
 
-  def IsEnabled(self):
-    if self._starter is not None and self._starter.is_alive():
-      return False
-    else:
-      self._starter = None
-
-    if self._restarter is not None and self._restarter.is_alive():
-      return False
-    else:
-      self._restarter = None
-
-    return self._starter is None and self._restarter is None
+  def IsReady(self):
+    return self._ready
 
   def _Ping(self):
     response = self._Request("GET", "/ping", timeout = 10)
