@@ -2,7 +2,7 @@ Intro
 =====
 vim-camel adds auto-casing for keywords
 
-Instalation
+Installation
 ===========
 
 Usage
