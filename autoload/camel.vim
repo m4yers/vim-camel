@@ -26,7 +26,7 @@ endfunction
 
 function! camel#Ping()
     if !camel#IsEnabled()
-        call s:Emp('Camel is not enabled')
+        call s:Emp('Is not enabled')
         return
     endif
 
@@ -36,11 +36,6 @@ function! camel#Ping()
 endfunction
 
 function! camel#Status()
-    if !camel#IsEnabled()
-        call s:Emp('Camel is not enabled')
-        return
-    endif
-
     let result = pyeval('_camel.Status()')
     call s:Emp('Status')
     for key in sort(keys(result))
@@ -50,7 +45,7 @@ endfunction
 
 function! camel#RestartService()
     if !camel#IsEnabled()
-        call s:Emp('Camel is not enabled')
+        call s:Emp('Is not enabled')
         return
     endif
 
@@ -60,7 +55,7 @@ endfunction
 
 function! camel#HumpTop(type)
     if !camel#IsEnabled()
-        call s:Emp('Camel is not enabled')
+        call s:Emp('Is not enabled')
         return
     endif
 
@@ -90,7 +85,7 @@ endfunction
 
 function! camel#HumpAll(type)
     if !camel#IsEnabled()
-        call s:Emp('Camel is not enabled')
+        call s:Emp('Is not enabled')
         return
     endif
 
